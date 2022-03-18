@@ -1,6 +1,3 @@
-import "random" for Random
-var random = Random.new()
-
 class Observation {
     construct new(classification, features) {
         _classification = classification
@@ -8,7 +5,8 @@ class Observation {
     }
 
     classification { _classification }
-    feature(index) { _features[index ] }
+    features { (0..._features.count).toList }
+    feature(index) { _features[index] }
 }
 
 class Classifier {
@@ -21,9 +19,11 @@ class Classifier {
         var value = observation.feature(_feature)
         return value > _threshold ? ">" : "≤"
     }
+
+    toString { "Classifier(*%(_feature) > %(_threshold))" }
 }
 
-// interface/abstract class
+// "abstract" base class
 class Predictor {
     predict(observation) {}
 }
@@ -46,6 +46,7 @@ class Stump is Predictor {
 
 class Observations {
     count { _data.count }
+    features { _data[0].features }
 
     construct new() {
         _data = []
@@ -56,6 +57,10 @@ class Observations {
         _data.add(observation)
         var c = observation.classification
         _counts[c] = (_counts[c] || 0) + 1
+    }
+
+    add(classification, features) {
+        this.add(Observation.new(classification, features))
     }
 
     mode {
@@ -79,7 +84,7 @@ class Observations {
         return (1.0 - sum)
     }
 
-    toString { "Observations(N=%(this.count), mode=%(this.mode), impurity=%(this.giniImpurity))" }
+    toString { "Observations(N=%(this.count), mode=%(this.mode), impurity=%(this.giniImpurity), features=%(this.features.count))" }
 
     partition(classifier) {
         var groups = {}
@@ -89,6 +94,17 @@ class Observations {
             (groups[group] = groups[group] || Observations.new()).add(observation)
         }
         return groups
+    }
+
+    classifiersFor(features) {
+        var classifiers = []
+        for (feature in features) {
+            for (observation in _data) {
+                var threshold = observation.feature(feature)
+                classifiers.add(Classifier.new(feature, threshold))
+            }
+        }
+        return classifiers
     }
 }
 
@@ -110,5 +126,42 @@ class Candidate {
             total = total + data.count
         }
         return (impurity / total)
+    }
+
+    toString { "Candidate(%(this.classifier), %(this.groups), score=%(this.score))"}
+}
+
+class Candidates {
+    construct new(data) {
+        _data = data
+    }
+
+    bestFor(features) {
+        var best = [ Num.infinity, Null ]
+        for (classifier in _data.classifiersFor(features)) {
+            var candidate = Candidate.new(classifier, _data)
+            var score = candidate.score
+            if (score < best[0]) { best = [ score, candidate ] }
+        }
+        return best[1]
+    }
+}
+
+import "random" for Random
+
+class Train {
+    construct new(data) {
+        _data = data
+        _random = Random.new()
+    }
+
+    construct new(data, seed) {
+        _data = data
+        _random = Random.new(seed)
+    }
+
+    sampleFeatures() {
+        var n = _data.features.count.sqrt.floor
+        return _random.sample(_data.features, n)
     }
 }

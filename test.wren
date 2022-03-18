@@ -3,7 +3,7 @@ System.print("random forest in wren (https://wren.io/)")
 import "os" for Process
 import "io" for File
 
-import "./forest" for Observations, Observation, Classifier, Candidate
+import "./forest" for Observations, Train, Candidates
 
 var data = Observations.new()
 
@@ -11,19 +11,19 @@ var data = Observations.new()
 File.read(Process.arguments[0])
     .trim().split("\n")
     .map { |r| r.split(",") }
-    .map { |r| Observation.new(
-        r[-1], // last column is the classification
-        // convert leading columns to list of numbers
-        r[0..-2].map { |n| Num.fromString(n) }.toList
-    ) }
-    .each { |o| data.add(o) }
+    .each { |r|
+        data.add(
+            r[-1], // last column is the classification
+            // convert leading columns to list of numbers
+            r[0..-2].map { |n| Num.fromString(n) }.toList
+        )
+    }
 
 System.print("input data: %(data)")
 
-var candidate = Candidate.new(Classifier.new(1, 0.01), data)
-System.print(candidate.groups)
-System.print(candidate.score)
+var train = Train.new(data, 2)
+var candidate = Candidates.new(data).bestFor(train.sampleFeatures())
+System.print(candidate)
 
-// todo: generate candidate classifiers and select best score
 // todo: recursively create predictors from best candidates to form tree
 // todo: create forest with trees built using different subsets of features (& observations?)
