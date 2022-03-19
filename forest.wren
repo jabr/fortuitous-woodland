@@ -1,13 +1,4 @@
-class Counter {
-    construct new() { _counts = {} }
-
-    counts { _counts.values }
-    mode { _counts.reduce { |m, e| e.value > m.value ? e : m }.key } // the most frequent value
-
-    add(value) {
-        _counts[value] = (_counts[value] || 0) + 1
-    }
-}
+import "./utils" for Counter
 
 class Observation {
     construct new(classification, features) {
@@ -66,8 +57,8 @@ class Forest is Predictor {
     construct new() { _trees = [] }
     add(tree) { _trees.add(tree) }
 
+    // return the consensus (most frequest) prediction of the trees
     predict(observation) {
-        // return the consensus (most frequest) prediction of the trees
         var counter = Counter.new()
         _trees.each { |t| counter.add(t.predict(observation)) }
         return counter.mode
@@ -97,6 +88,7 @@ class Observations {
         _counter.add(observation.classification)
     }
 
+    // a measure of how well the data has been separated by classification
     giniImpurity {
         var sum = 0.0
         for (count in _counter.counts) {
@@ -118,9 +110,12 @@ class Observations {
         return groups
     }
 
+    // generate candidate classifiers using the given subset of features
     classifiersFor(features) {
         var classifiers = []
         for (feature in features) {
+            // split the data at each observed point in the feature-space
+            // todo: try something (potentially) smarter (e.g. split on median)
             for (observation in _data) {
                 var threshold = observation.feature(feature)
                 classifiers.add(Classifier.new(feature, threshold))
@@ -158,6 +153,7 @@ class Candidates {
         _data = data
     }
 
+    // select the generated classifier with the best (i.e. lowest) score
     bestFor(features) {
         var best = [ Num.infinity, Null ]
         for (classifier in _data.classifiersFor(features)) {

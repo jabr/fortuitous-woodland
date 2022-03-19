@@ -1,21 +1,10 @@
 System.print("random forest in wren (https://wren.io/)")
 
 import "os" for Process
-import "io" for File
 import "random" for Random
 
-import "./forest" for Observations, Observation, Train
-
-// csv data format: feature1,feature2,...,featureN,classification
-var rows = File.read(Process.arguments[0])
-    .trim().split("\n").map { |r| r.split(",") }.map { |r|
-        return Observation.new(
-            // last column is the classification
-            r[-1],
-            // convert leading columns to list of numbers
-            r[0..-2].map { |n| Num.fromString(n) }.toList
-        )
-    }.toList
+import "./forest" for Observation, Observations, Train
+import "./utils" for CSV, Statistics
 
 class Evaluate {
     forest { _forest }
@@ -37,31 +26,15 @@ class Evaluate {
     }
 }
 
-class Statistics {
-    construct on(list) { _list = list }
-
-    sum { _list.reduce { |a,b| a + b } }
-    mean { this.sum / _list.count }
-
-    folds(k) {
-        var n = (_list.count / k).floor
-        return (0...k).map { |fold|
-            var s = fold * n
-            return _list[fold == k-1 ? s..-1 : s...s+n]
-        }.toList
-    }
-
-    splits(k) {
-        var folds = this.folds(k)
-        return (0...k).map { |i|
-            var other = []
-            for (j in 0...k) {
-                if (i != j) other.addAll(folds[j])
-            }
-            return [ folds[i], other ]
-        }.toList
-    }
-}
+// csv data format: feature1,feature2,...,featureN,classification
+var rows = CSV.read(Process.arguments[0]).map { |r|
+        return Observation.new(
+            // last column is the classification
+            r[-1],
+            // convert leading columns (the features) to list of numbers
+            r[0..-2].map { |n| Num.fromString(n) }.toList
+        )
+    }.toList
 
 var seed = 2
 var kFold = 5
