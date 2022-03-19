@@ -18,6 +18,8 @@ class Observation {
     classification { _classification }
     features { (0..._features.count).toList }
     feature(index) { _features[index] }
+
+    toString { "Observation(%(_classification) <- %(_features))" }
 }
 
 class Classifier {
@@ -84,13 +86,15 @@ class Observations {
         _counter = Counter.new()
     }
 
+    static from(data) {
+        var instance = new()
+        data.each { |o| instance.add(o) }
+        return instance
+    }
+
     add(observation) {
         _data.add(observation)
         _counter.add(observation.classification)
-    }
-
-    add(classification, features) {
-        this.add(Observation.new(classification, features))
     }
 
     giniImpurity {
