@@ -2,6 +2,7 @@ System.print("random forest in wren (https://wren.io/)")
 
 import "os" for Process
 import "io" for File
+import "random" for Random
 
 import "./forest" for Observations, Observation, Train
 
@@ -14,14 +15,71 @@ var rows = File.read(Process.arguments[0])
             // convert leading columns to list of numbers
             r[0..-2].map { |n| Num.fromString(n) }.toList
         )
+    }.toList
+
+class Evaluate {
+    forest { _forest }
+    construct new(trainingRows, size, seed) {
+        var data = Observations.from(trainingRows)
+        // System.print("input data: %(data)")
+        var train = Train.new(data, seed)
+        _forest = train.generateForest(size)
     }
 
-var data = Observations.from(rows)
-System.print("input data: %(data)")
+    accuracy(testingRows) {
+        var correct = 0
+        for (observation in testingRows) {
+            var prediction = _forest.predict(observation)
+            // System.print("= %(prediction) :: %(observation)")
+            if (prediction == observation.classification) correct = correct + 1
+        }
+        return correct / testingRows.count
+    }
+}
 
-var train = Train.new(data, 2)
-var forest = train.generateForest(5)
-System.print(forest)
+class Statistics {
+    construct on(list) { _list = list }
 
-var o1 = rows.toList[-1]
-System.print("prediction %(forest.predict(o1)) :: %(o1)")
+    sum { _list.reduce { |a,b| a + b } }
+    mean { this.sum / _list.count }
+
+    folds(k) {
+        var n = (_list.count / k).floor
+        return (0...k).map { |fold|
+            var s = fold * n
+            return _list[fold == k-1 ? s..-1 : s...s+n]
+        }.toList
+    }
+
+    splits(k) {
+        var folds = this.folds(k)
+        return (0...k).map { |i|
+            var other = []
+            for (j in 0...k) {
+                if (i != j) other.addAll(folds[j])
+            }
+            return [ folds[i], other ]
+        }.toList
+    }
+}
+
+var seed = 2
+var kFold = 5
+var rng = Random.new(seed)
+
+for (size in [1, 5, 10]) {
+    System.print("Trees: %(size)")
+    rng.shuffle(rows)
+    var scores = []
+    for (split in Statistics.on(rows).splits(kFold)) {
+        var testingRows = split[0]
+        var trainingRows = split[1]
+        var eval = Evaluate.new(trainingRows, size, seed)
+        // System.print(eval.forest)
+
+        scores.add(eval.accuracy(testingRows))
+    }
+
+    System.print("Scores: %(scores)")
+    System.print("Mean: %(Statistics.on(scores).mean)")
+}
