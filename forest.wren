@@ -1,3 +1,14 @@
+class Counter {
+    construct new() { _counts = {} }
+
+    counts { _counts.values }
+    mode { _counts.reduce { |m, e| e.value > m.value ? e : m }.key } // the most frequent value
+
+    add(value) {
+        _counts[value] = (_counts[value] || 0) + 1
+    }
+}
+
 class Observation {
     construct new(classification, features) {
         _classification = classification
@@ -44,40 +55,47 @@ class Stump is Predictor {
     }
 }
 
+class Tree is Predictor {
+    construct new(predictor) { _root = predictor }
+    predict(observation) { _root.predict(observation) }
+}
+
+class Forest is Predictor {
+    construct new() { _trees = [] }
+    add(tree) { _trees.add(tree) }
+
+    predict(observation) {
+        // return the consensus (most frequest) prediction of the trees
+        var counter = Counter.new()
+        _trees.each { |t| counter.add(t.predict(observation)) }
+        return counter.mode
+    }
+
+    toString { "Forest(trees=%(_trees.count))"}
+}
+
 class Observations {
     count { _data.count }
     features { _data[0].features }
+    mode { _counter.mode }
 
     construct new() {
         _data = []
-        _counts = {}
+        _counter = Counter.new()
     }
 
     add(observation) {
         _data.add(observation)
-        var c = observation.classification
-        _counts[c] = (_counts[c] || 0) + 1
+        _counter.add(observation.classification)
     }
 
     add(classification, features) {
         this.add(Observation.new(classification, features))
     }
 
-    mode {
-        var mode = "∅"
-        var max = 0
-        for (entry in _counts) {
-            if (entry.value > max) {
-                max = entry.value
-                mode = entry.key
-            }
-        }
-        return mode
-    }
-
     giniImpurity {
         var sum = 0.0
-        for (count in _counts.values) {
+        for (count in _counter.counts) {
             var p = count / this.count
             sum = sum + (p * p)
         }
@@ -160,8 +178,42 @@ class Train {
         _random = Random.new(seed)
     }
 
+    // select a random subset of features
     sampleFeatures() {
         var n = _data.features.count.sqrt.floor
         return _random.sample(_data.features, n)
+    }
+
+    // generate a leaf or branching stump predictor for the given data
+    generatePredictor(data) {
+        // if only one observation, generate a leaf returning its classification
+        if (data.count <= 1) {
+            return Leaf.new(data.mode)
+        }
+
+        var candidate = Candidates.new(data).bestFor(this.sampleFeatures())
+        // if best candidate did not split the data, generate a leaf
+        // returning the most frequent classification in the data
+        if (candidate.groups.count <= 1) {
+            return Leaf.new(data.mode)
+        }
+
+        var branches = {}
+        for (group in candidate.groups) {
+            // recursively generate predictors for each group's data subset
+            branches[group.key] = this.generatePredictor(group.value)
+        }
+        return Stump.new(candidate.classifier, branches)
+    }
+
+    generateTree() {
+        // todo: use a different (random) sample of the training data for each tree?
+        return Tree.new(this.generatePredictor(_data))
+    }
+
+    generateForest(size) {
+        var forest = Forest.new()
+        (0...size).each { forest.add(this.generateTree()) }
+        return forest
     }
 }
