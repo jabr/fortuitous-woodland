@@ -1,21 +1,21 @@
 # fortuitous-woodland
 
-A simple [random forest](https://en.wikipedia.org/wiki/Random_forest) classifier in [wren](https://wren.io/).
+A simple [random forest](https://en.wikipedia.org/wiki/Random_forest) classifier in multiple languages.
 
-## Usage
+* [Wren](https://wren.io/):
 
-### Testing model generation
+  ### Testing model generation
 
-```sh
-wren_cli test.wren example-data.csv
-```
+  ```sh
+  wren_cli wren/test.wren example-data.csv
+  ```
 
-### Import module in code
+  ### Import module in code
 
-```wren
-import "./forest" for Observations, Observation, Classifier
-// @todo
-```
+  ```wren
+  import "./forest" for Observations, Observation, Classifier
+  // @todo
+  ```
 
 ## References
 
