@@ -1,4 +1,4 @@
-System.print("random forest in wren (https://wren.io/)")
+System.print("random forest in Wren")
 
 import "os" for Process
 import "random" for Random

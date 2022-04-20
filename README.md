@@ -17,6 +17,14 @@ A simple [random forest](https://en.wikipedia.org/wiki/Random_forest) classifier
   // @todo
   ```
 
+* Python (work in progress):
+
+  ### Testing model generation
+
+  ```sh
+  python3 python/test.py example-data.csv
+  ```
+
 ## References
 
 * Example data
