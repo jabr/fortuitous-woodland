@@ -1,5 +1,6 @@
+import math
 from dataclasses import dataclass
-from collections import Counter
+from collections import Counter, defaultdict
 
 @dataclass(frozen=True)
 class Observation:
@@ -19,8 +20,9 @@ class Classifier:
     return ">" if value > self.threshold else "≤"
 
 class Observations:
-  __data = []
-  __counter = Counter()
+  def __init__(self):
+    self.__data = []
+    self.__counter = Counter()
 
   @classmethod
   def fromList(cls, data):
@@ -47,8 +49,9 @@ class Observations:
     except IndexError:
       return []
 
+  # a measure of how well the data has been separated by classification
   def gini_impurity(self) -> float:
-    total = float(self.count())
+    total = self.count()
     sum = 0.0
     for count in dict.values(self.__counter):
       p = count / total
@@ -57,3 +60,52 @@ class Observations:
 
   def __str__(self):
     return f"Observations: N={self.count()}, mode={self.mode()}, impurity={self.gini_impurity()} features={len(self.features())}"
+
+  def partition(self, classifier) -> dict:
+    groups = defaultdict(Observations)
+    for observation in self.__data:
+      group = classifier.classify(observation)
+      groups[group].add(observation)
+    return groups
+
+  # generate candidate classifiers using the given subset of features
+  def classifiers_for(self, features) -> list[Classifier]:
+    classifiers = []
+    for feature in features:
+      # split the data at each observed point in the feature-space
+      # todo: try something (potentially) smarter (e.g. split on median)
+      for observation in self.__data:
+        threshold = observation.feature(feature)
+        classifiers.append(Classifier(feature, threshold))
+    return classifiers
+
+class Candidate:
+  def __init__(self, classifier: Classifier, data: Observations):
+    self.classifier = classifier
+    self.groups = data.partition(classifier)
+
+  def score(self):
+    impurity = 0.0
+    total = 0
+    for data in self.groups.values():
+      count = data.count()
+      impurity += data.gini_impurity() * count
+      total += count
+    return impurity / total
+
+  def __str__(self):
+    groups = ', '.join([f"'{p}': {o}" for p, o in self.groups.items()])
+    return f"Candidate {self.classifier}, {{{groups}}}, {self.score()}"
+
+class Candidates:
+  def __init__(self, data: Observations):
+    self.__data = data
+
+  # select the generated classifier with the best (i.e. lowest) score
+  def best_for(self, features) -> Candidate:
+    best = (math.inf, None)
+    for classifier in self.__data.classifiers_for(features):
+      candidate = Candidate(classifier, self.__data)
+      score = candidate.score()
+      if score < best[0]: best = (score, candidate)
+    return best[1]

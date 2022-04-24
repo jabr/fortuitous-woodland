@@ -17,3 +17,8 @@ print(Observations())
 
 data = Observations.fromList(rows)
 print(data)
+
+import forest
+candidates = forest.Candidates(data)
+candidate = candidates.best_for([0])
+print(candidate)
