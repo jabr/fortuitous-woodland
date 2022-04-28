@@ -1,6 +1,6 @@
 print("random forest in Python")
 
-from forest import Observation, Observations
+from forest import Observation, Observations, Train
 import sys, csv, random, statistics
 
 seed = 2
@@ -27,10 +27,12 @@ def k_fold_splits(data: list, k: int) -> list[(list,list)]:
 
 def evaluate(size: int, seed, split: list):
   testing, training = split
-  # todo: train
+  data = Observations.fromList(training)
+  model = Train(data, seed).generate_forest(size)
   correct = 0
   for observation in testing:
-    if random.choice((True, False)): correct += 1
+    prediction = model.predict(observation)
+    if prediction == observation.classification: correct += 1
   return correct / len(testing)
 
 for size in [1, 5, 10]:
