@@ -2,6 +2,21 @@
 
 A simple [random forest](https://en.wikipedia.org/wiki/Random_forest) classifier in multiple languages.
 
+* Python:
+
+  ### Testing model generation
+
+  ```sh
+  python3 python/test.py example-data.csv
+  ```
+
+  ### Import module in code
+
+  ```python
+  from forest import Observation, Observations, Train
+  // @todo
+  ```
+
 * [Wren](https://wren.io/):
 
   ### Testing model generation
@@ -17,13 +32,7 @@ A simple [random forest](https://en.wikipedia.org/wiki/Random_forest) classifier
   // @todo
   ```
 
-* Python (work in progress):
-
-  ### Testing model generation
-
-  ```sh
-  python3 python/test.py example-data.csv
-  ```
+* Ruby, Kotlin, Typescript, etc (todo)
 
 ## References
 
